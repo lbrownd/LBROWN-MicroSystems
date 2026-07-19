@@ -68,7 +68,7 @@
                 map = L.map('mapa').setView([latIn, lngIn], 14);
                 
                 // URL universal estándar de OpenStreetMap limpia y con su extensión .png en su lugar exacto
-                L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+                L.tileLayer('https://openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     crossOrigin: true,
                     attribution: '© OpenStreetMap'
