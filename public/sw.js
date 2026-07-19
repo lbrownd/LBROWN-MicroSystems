@@ -2,8 +2,14 @@ const CACHE_NAME = 'gps-unan-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
+  '/manifest.json',
+  '/192.png',
+  '/512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
 ];
 
 // Instalar y guardar recursos
