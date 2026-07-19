@@ -1,4 +1,3 @@
-process.env.TZ = 'America/Managua'; // Forzar horario de Nicaragua en la nube
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -6,47 +5,56 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+// Servir la carpeta "public" como estática (donde estará el index.html)
+app.use(express.static(path.join(__dirname, 'public')));
 
-// PARCHE DE SEGURIDAD GLOBAL: Desarma el cortafuegos de Render para permitir mapas y sockets libres
-app.use((req, res, next) => {
-    res.setHeader(
-        "Content-Security-Policy",
-        "default-src 'self' * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' * wss://* ws://*;"
-    );
-    next();
+// Ruta principal
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.use(express.json());
+// Guardamos el último estado reportado de las rutas en memoria
+let estadoRutas = {};
 
-// Servir la interfaz web unificada
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// CANALES DE COMUNICACIÓN EN TIEMPO REAL DIRECTOS
 io.on('connection', (socket) => {
-    console.log(`📡 Dispositivo conectado: ${socket.id}`);
+    console.log('Nuevo cliente conectado:', socket.id);
 
-    // Escuchar coordenadas del conductor y retransmitirlas al instante
+    // 1. Escuchar cuando el conductor envía coordenadas
     socket.on('conductor_envia_coordenadas', (data) => {
-        data.ultimaActualizacion = new Date().toLocaleTimeString();
+        // data contiene: { rutaId, lat, lng, velocidad, precision }
         
-        // Log limpio en la consola de Render para monitoreo en vivo
-        console.log(`🚗 [${data.rutaId}] Lat: ${data.lat}, Lng: ${data.lng} | Precisión: ${data.precision}m`);
-        
-        // Retransmisión masiva inmediata a todos los pasajeros/oficinas
+        // Agregar la hora del servidor en formato legible
+        data.ultimaActualizacion = new Date().toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            timeZone: 'America/Managua' // Configurado para la hora de Nicaragua
+        });
+
+        // Guardar el estado
+        estadoRutas[data.rutaId] = data;
+
+        // Reenviar las coordenadas a todos los pasajeros conectados
         io.emit(`usuario_recibe_ruta_${data.rutaId}`, data);
     });
 
+    // 2. Escuchar cuando el conductor finaliza el turno
     socket.on('finalizar_viaje_limpiar_bitacora', () => {
+        console.log('Turno finalizado. Limpiando mapas de pasajeros.');
+        estadoRutas = {};
+        // Ordenar a todos los pasajeros limpiar el mapa
         io.emit('limpiar_mapa_pasajeros');
     });
 
-    socket.on('disconnect', () => console.log(`❌ Dispositivo desconectado: ${socket.id}`));
+    socket.on('disconnect', () => {
+        console.log('Cliente desconectado:', socket.id);
+    });
 });
 
-// Levantar el servicio en la red de Render
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor de tracking corriendo en el puerto ${PORT}`);
+// Render define el puerto dinámicamente en process.env.PORT
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
