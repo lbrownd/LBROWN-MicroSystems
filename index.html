@@ -218,6 +218,28 @@
             if (marcadorSalida) { map.removeLayer(marcadorSalida); marcadorSalida = null; }
             if (socket) socket.emit('finalizar_viaje_limpiar_bitacora');
         }
+
+// Bloquear el menú de clic derecho
+document.addEventListener('contextmenu', event => event.preventDefault());
+// Bloquear F12, Ctrl+U (Ver código fuente) y Ctrl+Shift+I (Inspeccionar)
+document.addEventListener('keydown', event => {
+    // Bloquear F12
+    if (event.keyCode === 123) {
+        event.preventDefault();
+    }
+    // Bloquear Ctrl+Shift+I (Inspeccionar en Chrome/Firefox)
+    if (event.ctrlKey && event.shiftKey && event.keyCode === 73) {
+        event.preventDefault();
+    }
+    // Bloquear Ctrl+U (Ver código fuente de la página)
+    if (event.ctrlKey && event.keyCode === 85) {
+        event.preventDefault();
+    }
+});
+
+
+
+        
     </script>
 </body>
 </html>
