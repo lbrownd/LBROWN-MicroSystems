@@ -3,48 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LBROWN Microsystems GPS</title>
-    <!-- Librerías Globales Estables desde Cloudflare (Inmunes a caídas de disco) -->
+    <title>LBROWN-MicroSystems</title>
+    <!-- Google Fonts para tipografía premium -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Librerías Globales Estables desde Cloudflare -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="manifest" href="/manifest.json" />
     <style>
-        /* Estilos base limpios para forzar que Leaflet no oculte las imágenes */
-        #mapa { width: 100% !important; height: 500px !important; display: block !important; position: relative !important; }
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #10b981;
+            --secondary-dark: #047857;
+            --danger: #ef4444;
+            --danger-dark: #b91c1c;
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --dark-bg: #0b0f19;
+            --dark-card: rgba(22, 28, 45, 0.8);
+            --dark-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-premium);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--dark-border);
+            padding-bottom: 16px;
+        }
+
+        .card-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .driver-header h2 {
+            color: var(--secondary);
+        }
+
+        .passenger-header h2 {
+            color: var(--primary-light);
+        }
+
+        /* Pulsos de Estado */
+        .pulse-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+        }
+
+        .pulse-indicator.green {
+            background-color: var(--secondary);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+
+        .pulse-indicator.green.active {
+            animation: pulse-green 1.5s infinite;
+        }
+
+        .pulse-indicator.blue {
+            background-color: var(--primary-light);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        @keyframes pulse-blue {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+
+        /* Botones Premium */
+        .btn {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+            filter: brightness(1.1);
+        }
+
+        .btn-warning-action {
+            background: linear-gradient(135deg, var(--warning) 0%, var(--warning-dark) 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .btn-warning-action:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+            filter: brightness(1.1);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+            filter: brightness(1.1);
+        }
+
+        .btn:disabled {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        /* Panel de PIN */
+        .pin-container {
+            margin-top: 10px;
+            padding: 18px;
+            border: 1px dashed var(--danger);
+            border-radius: 12px;
+            background: rgba(239, 68, 68, 0.05);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .pin-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--danger);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pin-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pin-input {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1.5px solid rgba(239, 68, 68, 0.3);
+            color: var(--text-main);
+            border-radius: 8px;
+            letter-spacing: 2px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .pin-input:focus {
+            border-color: var(--danger);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+        }
+
+        .pin-btn-ok {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .pin-btn-ok:hover {
+            background: var(--danger-dark);
+        }
+
+        .pin-btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .pin-btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Displays de Información */
+        .status-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 5px;
+        }
+
+        .info-box {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--dark-border);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-box-full {
+            grid-column: span 2;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .info-value-highlight {
+            color: var(--primary-light);
+        }
+
+        .waiting-signal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 145px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-style: italic;
+            border: 1px dashed var(--dark-border);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.2);
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* Contenedor del Mapa */
+        .map-wrapper {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 16px;
+            padding: 8px;
+            box-shadow: var(--shadow-premium);
+            width: 100%;
+        }
+
+        #mapa {
+            width: 100% !important;
+            height: 520px !important;
+            display: block !important;
+            position: relative !important;
+            border-radius: 12px;
+            border: none;
+            z-index: 1;
+        }
+
+        /* Leaflet Dark mode layer overrides to match dark theme beautifully */
+        .leaflet-container {
+            background: #111a2e !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body style="font-family: Arial, sans-serif; padding: 15px; max-width: 1000px; margin: 0 auto; background-color: #f4f6f9;">
-    <h2>Control GPS de Recorridos de la UNAN - Managua</h2>
-    
-    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
-        <!-- Panel del Conductor -->
-        <div style="flex: 1; min-width: 280px; border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #fff;">
-            <h3 style="margin-top: 0; color: #2e7d32;"> 🟢 Control Conductor</h3>
-            <button id="btn-viaje" onclick="solicitarPin('pausa')" style="padding: 10px; background: #2e7d32; color: #fff; border: none; border-radius: 4px; font-weight: bold; width: 100%; cursor: pointer;">Activar GPS</button>
-            <button id="btn-finalizar" onclick="solicitarPin('finalizar')" disabled style="padding: 10px; background: #9ca3af; color: #fff; border: none; border-radius: 4px; font-weight: bold; width: 100%; margin-top: 8px; cursor: not-allowed;">Finalizar Turno</button>
-            <div id="contenedor-pin" style="margin-top: 10px; padding: 10px; border: 2px solid #ef4444; border-radius: 6px; background: #fef2f2; display: none; text-align: center;">
-                <p style="margin: 0 0 8px; font-size: 12px; font-weight: bold; color: #991b1b;">PIN de Seguridad:</p>
-                <input type="password" id="input-pin" maxlength="4" placeholder="••••" style="width: 60px; padding: 6px; text-align: center; border: 1px solid #f87171; border-radius: 4px; letter-spacing: 3px;">
-                <button onclick="validarPin()" style="padding: 6px; background: #ef4444; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; margin-left: 5px;">OK</button>
-                <button onclick="cancelarPin()" style="padding: 6px; background: #6b7280; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px;">X</button>
+<body>
+    <div class="container">
+        <header>
+            <h1>LBROWN-MicroSystems</h1>
+            <p>Control GPS de Recorridos de la UNAN - Managua</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Panel del Conductor -->
+            <div class="card">
+                <div class="card-header driver-header">
+                    <span id="pulse-conductor" class="pulse-indicator green"></span>
+                    <h2>Control Conductor</h2>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-viaje" class="btn btn-primary" onclick="solicitarPin('pausa')">Activar GPS</button>
+                    <button id="btn-finalizar" class="btn btn-danger" onclick="solicitarPin('finalizar')" disabled>Finalizar Turno</button>
+                </div>
+
+                <div id="contenedor-pin" class="pin-container">
+                    <p class="pin-title">🔒 PIN de Seguridad:</p>
+                    <div class="pin-inputs">
+                        <input type="password" id="input-pin" class="pin-input" maxlength="4" placeholder="••••">
+                        <button class="pin-btn-ok" onclick="validarPin()">OK</button>
+                        <button class="pin-btn-cancel" onclick="cancelarPin()">X</button>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="info-label">Estado de Transmisión:</span>
+                    <p id="envio-status" class="status-text" style="color: var(--danger);">Apagado</p>
+                </div>
             </div>
-            <p id="envio-status" style="margin-top: 10px; font-weight: bold; font-size: 13px; margin-bottom: 0;">Estado: Apagado</p>
+
+            <!-- Panel del Pasajero / Supervisor -->
+            <div class="card">
+                <div class="card-header passenger-header">
+                    <span class="pulse-indicator blue"></span>
+                    <h2>Monitoreo en Tiempo Real</h2>
+                </div>
+                
+                <div id="coordenadas-recibidas-panel">
+                    <div id="coordenadas-recibidas" class="waiting-signal">Esperando señal de transmisión...</div>
+                </div>
+            </div>
         </div>
 
-        <!-- Panel del Pasajero / Supervisor -->
-        <div style="flex: 1; min-width: 320px; border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #fff;">
-            <h3 style="margin-top: 0; color: #1565c0;">🔵 Monitoreo de Recorridos UNAN-Managua</h3>
-            <div id="coordenadas-recibidas" style="font-size: 14px; color: #333; line-height: 1.4; padding: 10px; background: #f1f5f9; border-radius: 6px;">Esperando señal...</div>
+        <!-- Contenedor del Mapa -->
+        <div class="map-wrapper">
+            <div id="mapa"></div>
         </div>
     </div>
 
-    <!-- Caja del mapa con dimensiones nativas de seguridad en el HTML -->
-    <div id="mapa" style="width: 100%; height: 500px; min-height: 500px; display: block; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></div>
-
-
-    <!--INICIA EL BLOQUE NUMERO 2-->
-        <script>
+    <script>
         let socket = null;
         let watchId = null;
         let map = null;
@@ -55,32 +491,49 @@
         
         const PIN_AUTORIZADO = "1234";
         const rutaId = "Ruta_Norte";
-        let accionPendiente = "";
+        let accionPending = ""; // Corregido nombre de la variable
         
         // Coordenadas base iniciales para Managua (UNAN)
         const latIn = 12.1136;
         const lngIn = -86.2241;
 
         document.addEventListener("DOMContentLoaded", () => {
+            // Inicializar Socket.io
             if (typeof io !== 'undefined') socket = io();
             
             try {
-                // INICIALIZACIÓN DIRECTA (Inmune a cuadros grises): Monta el mapa en Managua al instante
+                // Inicializar mapa de Leaflet
                 map = L.map('mapa').setView([latIn, lngIn], 14);
                 
-                // URL universal estándar de OpenStreetMap limpia y con su extensión .png en su lugar exacto
-                           
+                // Capa de mosaicos estándar de OpenStreetMap
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     crossOrigin: true,
                     attribution: '© OpenStreetMap'
                 }).addTo(map);
 
-                // Marcador e hilo nativo estándar de Leaflet estables sin arreglos vacíos
-                marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
-                lineaTrayectoria = L.polyline([], { color: '#2563eb', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
+                // Ícono personalizado de autobús (DivIcon con SVG inline — no depende de imágenes externas)
+                const iconBus = L.divIcon({
+                    className: '',
+                    html: `<div style="
+                        width:44px; height:44px;
+                        background: linear-gradient(135deg,#1e3a8a,#3b82f6);
+                        border-radius:50%;
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:24px; line-height:1;
+                        box-shadow: 0 3px 10px rgba(30,58,138,0.6);
+                        border: 2px solid rgba(255,255,255,0.3);
+                    ">🚌</div>`,
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22],
+                    popupAnchor: [0, -24]
+                });
+
+                // Marcador principal con ícono de bus y trazado de línea
+                marcadorVehiculo = L.marker([latIn, lngIn], { icon: iconBus }).addTo(map).bindPopup("🚌 Autobús UNAN");
+                lineaTrayectoria = L.polyline([], { color: '#3b82f6', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
                 
-                // Forzar el redibujado geométrico para que se estire al 100% de la caja
+                // Ajustar visualización del mapa al cargar
                 setTimeout(() => { if (map) map.invalidateSize(true); }, 400);
             } catch (e) { 
                 console.error("Error al montar mapa inicial:", e); 
@@ -88,16 +541,13 @@
 
             if (socket) {
                 // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
-               
-                // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
-socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
-    // SI ESTE CELULAR TIENE EL GPS ACTIVADO (ES EL CONDUCTOR), IGNORAMOS LA RETRANSMISIÓN
-    if (watchId !== null) return;
+                socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
+                    // Si el dispositivo actual es el conductor que está transmitiendo, ignorar la retransmisión
+                    if (watchId !== null) return;
 
-    const latNum = parseFloat(d.lat);
-    const lngNum = parseFloat(d.lng);
-    const pos = [latNum, lngNum];
-              
+                    const latNum = parseFloat(d.lat);
+                    const lngNum = parseFloat(d.lng);
+                    const pos = [latNum, lngNum];
                     
                     if (esPrimerPunto) {
                         esPrimerPunto = false;
@@ -106,11 +556,28 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                     }
                     
                     document.getElementById('coordenadas-recibidas').innerHTML = `
-                        <b>Ubicación Recibida (Pasajero):</b><br>
-                        Lat: ${latNum.toFixed(5)} | Lng: ${lngNum.toFixed(5)}<br>
-                        Vel: ${d.velocidad || 0} km/h<br>
-                        <small>Error GPS: ±${d.precision || 0}m</small><br>
-                        <small style="color: #64748b;">Último reporte: ${d.ultimaActualizacion || ''}</small>
+                        <div class="info-grid">
+                            <div class="info-box">
+                                <span class="info-label">Latitud</span>
+                                <span class="info-value">${latNum.toFixed(5)}</span>
+                            </div>
+                            <div class="info-box">
+                                <span class="info-label">Longitud</span>
+                                <span class="info-value">${lngNum.toFixed(5)}</span>
+                            </div>
+                            <div class="info-box">
+                                <span class="info-label">Velocidad</span>
+                                <span class="info-value info-value-highlight">${d.velocidad || 0} km/h</span>
+                            </div>
+                            <div class="info-box">
+                                <span class="info-label">Precisión GPS</span>
+                                <span class="info-value">±${d.precision || 0}m</span>
+                            </div>
+                            <div class="info-box info-box-full">
+                                <span class="info-label">Último Reporte (Servidor)</span>
+                                <span class="info-value" style="font-size: 0.85rem; color: var(--text-muted);">${d.ultimaActualizacion || ''}</span>
+                            </div>
+                        </div>
                     `;
                     
                     if (map) {
@@ -124,15 +591,13 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                     esPrimerPunto = true;
                     if (lineaTrayectoria) lineaTrayectoria.setLatLngs([]);
                     if (marcadorSalida) { map.removeLayer(marcadorSalida); marcadorSalida = null; }
-                    document.getElementById('coordenadas-recibidas').innerHTML = "Esperando señal...";
+                    document.getElementById('coordenadas-recibidas').innerHTML = `<div class="waiting-signal">Esperando señal de transmisión...</div>`;
                     if (map) map.setView([latIn, lngIn], 14);
                 });
             }
         });
 
-       // <!-- INICIA EL BLOQUE NUMERO 3 -->
-
-        // MAPEO LOCAL INMEDIATO (De tu idea original): Actualiza la pantalla del chofer sin retrasos
+        // Actualiza el mapa y la interfaz en tiempo real en la pantalla del propio conductor
         function enviarGps(p) {
             const lat = p.coords.latitude;
             const lng = p.coords.longitude;
@@ -141,14 +606,32 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
 
             const pos = [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
             
-            document.getElementById('envio-status').innerText = "Transmitiendo EN VIVO 🛰️ (" + acc + "m)";
-            document.getElementById('envio-status').style.color = "#2e7d32";
+            const statusEl = document.getElementById('envio-status');
+            statusEl.innerText = "Transmitiendo EN VIVO 🛰️";
+            statusEl.style.color = "var(--secondary)";
             
-            // Renderizado local instantáneo en la pantalla del propio celular del conductor
             document.getElementById('coordenadas-recibidas').innerHTML = `
-                <b>Mi Ubicación Real (Conductor):</b><br>
-                Lat: ${lat.toFixed(5)} | Lng: ${lng.toFixed(5)}<br>
-                Vel: ${vel} km/h | Precision: ±${acc}m
+                <div class="info-grid">
+                    <div class="info-box">
+                        <span class="info-label">Latitud</span>
+                        <span class="info-value">${lat.toFixed(5)}</span>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-label">Longitud</span>
+                        <span class="info-value">${lng.toFixed(5)}</span>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-label">Velocidad</span>
+                        <span class="info-value info-value-highlight">${vel} km/h</span>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-label">Precisión GPS</span>
+                        <span class="info-value">±${acc}m</span>
+                    </div>
+                    <div class="info-box info-box-full" style="text-align: center; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+                        <span class="info-value" style="color: var(--secondary); font-size: 0.85rem;">Transmitiendo coordenadas locales en vivo</span>
+                    </div>
+                </div>
             `;
 
             if (map) {
@@ -162,7 +645,6 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                 map.panTo(pos);
             }
 
-            // Transmisión paralela limpia hacia el backend de Render con los números sueltos indexados
             if (socket) {
                 socket.emit('conductor_envia_coordenadas', {
                     rutaId: rutaId,
@@ -177,8 +659,11 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
         function solicitarPin(t) {
             if (watchId === null && t === 'pausa') { arrancarGps(); return; }
             accionPending = t;
-            document.getElementById('contenedor-pin').style.display = 'block';
+            
+            const pinContainer = document.getElementById('contenedor-pin');
+            pinContainer.style.display = 'flex';
             document.getElementById('input-pin').value = '';
+            document.getElementById('input-pin').focus();
         }
 
         function validarPin() {
@@ -199,11 +684,15 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
         
         function arrancarGps() {
             const b1 = document.getElementById('btn-viaje'), b2 = document.getElementById('btn-finalizar');
-            b1.innerText = "Pausar GPS"; b1.style.background = "#d97706";
-            b2.removeAttribute('disabled'); b2.style.cursor = 'pointer'; b2.style.background = '#c62828';
+            b1.innerText = "Pausar GPS"; 
+            b1.className = "btn btn-warning-action";
+            b2.removeAttribute('disabled');
+            
+            const pulseCond = document.getElementById('pulse-conductor');
+            pulseCond.classList.add('active');
+            
             const opt = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
             
-            // Disparo inicial instantáneo y radar continuo idéntico a tu idea original sin filtros restrictivos
             navigator.geolocation.getCurrentPosition((p) => {
                 enviarGps(p);
                 watchId = navigator.geolocation.watchPosition(enviarGps, (e) => console.error(e), opt);
@@ -216,20 +705,37 @@ socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
         function apagarGps() {
             if (watchId) navigator.geolocation.clearWatch(watchId); 
             watchId = null;
-            document.getElementById('btn-viaje').innerText = "Activar GPS";
-            document.getElementById('btn-viaje').style.background = "#2e7d32";
-            document.getElementById('envio-status').innerText = "Estado: Apagado";
-            document.getElementById('envio-status').style.color = "#ef4444";
+            
+            const b1 = document.getElementById('btn-viaje');
+            b1.innerText = "Activar GPS";
+            b1.className = "btn btn-primary";
+            
+            const pulseCond = document.getElementById('pulse-conductor');
+            pulseCond.classList.remove('active');
+            
+            const statusEl = document.getElementById('envio-status');
+            statusEl.innerText = "Estado: Apagado";
+            statusEl.style.color = "var(--danger)";
         }
 
         function cerrarTurno() {
             apagarGps();
             const b2 = document.getElementById('btn-finalizar');
-            b2.setAttribute('disabled', 'true'); b2.style.cursor = 'not-allowed'; b2.style.background = '#9ca3af';
+            b2.setAttribute('disabled', 'true');
             esPrimerPunto = true;
             if (lineaTrayectoria) lineaTrayectoria.setLatLngs([]);
             if (marcadorSalida) { map.removeLayer(marcadorSalida); marcadorSalida = null; }
+            document.getElementById('coordenadas-recibidas').innerHTML = `<div class="waiting-signal">Esperando señal de transmisión...</div>`;
             if (socket) socket.emit('finalizar_viaje_limpiar_bitacora');
+        }
+
+        // Registro de Service Worker para soporte Offline / PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
+                    .catch(err => console.error('Error al registrar Service Worker:', err));
+            });
         }
     </script>
 </body>
