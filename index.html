@@ -4,70 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LBROWN Microsystems GPS</title>
-    <!-- Librerías de Leaflet desde CDN Estable -->
+    <!-- Librerías Globales Estables desde Cloudflare (Inmunes a caídas de disco) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    
     <style>
         /* Estilos base limpios para forzar que Leaflet no oculte las imágenes */
         #mapa { width: 100% !important; height: 500px !important; display: block !important; position: relative !important; }
-
-
-        /* Estilos para quitar el fondo por defecto del marcador de Leaflet */
-.custom-bus-marker {
-    background: transparent !important;
-    border: none !important;
-}
-
-/* Contenedor del emoji y el pulso */
-.pulse-container {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* El círculo azul que parpadea y se expande */
-.pulse-ring {
-    border: 3px solid #2563eb;
-    box-sizing: border-box;
-    border-radius: 50%;
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    animation: pulse 1.8s ease-out infinite;
-}
-
-/* El emoji del autobús en el centro */
-.bus-emoji {
-    font-size: 26px;
-    z-index: 10;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
-}
-
-/* Animación del pulso */
-@keyframes pulse {
-    0% {
-        transform: scale(0.5);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(2.2);
-        opacity: 0;
-    }
-}
-     
     </style>
-
-    <!-- Metatags para PWA y Apple Mobile -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1565c0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    
 </head>
 <body style="font-family: Arial, sans-serif; padding: 15px; max-width: 1000px; margin: 0 auto; background-color: #f4f6f9;">
     <h2>Control GPS de Recorridos de la UNAN - Managua</h2>
@@ -97,7 +42,9 @@
     <!-- Caja del mapa con dimensiones nativas de seguridad en el HTML -->
     <div id="mapa" style="width: 100%; height: 500px; min-height: 500px; display: block; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></div>
 
-    <script>
+
+    <!--INICIA EL BLOQUE NUMERO 2-->
+        <script>
         let socket = null;
         let watchId = null;
         let map = null;
@@ -108,7 +55,7 @@
         
         const PIN_AUTORIZADO = "1234";
         const rutaId = "Ruta_Norte";
-        let accionPending = ""; // Corregido el nombre aquí
+        let accionPendiente = "";
         
         // Coordenadas base iniciales para Managua (UNAN)
         const latIn = 12.1136;
@@ -118,34 +65,19 @@
             if (typeof io !== 'undefined') socket = io();
             
             try {
-                // Monta el mapa en Managua al instante
+                // INICIALIZACIÓN DIRECTA (Inmune a cuadros grises): Monta el mapa en Managua al instante
                 map = L.map('mapa').setView([latIn, lngIn], 14);
                 
-                // URL estándar de OpenStreetMap corregida con {s}
+                // URL universal estándar de OpenStreetMap limpia y con su extensión .png en su lugar exacto
+                           
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     crossOrigin: true,
-                    attribution: '© OpenStreetMap contributors'
+                    attribution: '© OpenStreetMap'
                 }).addTo(map);
 
-                // Marcador e hilo nativo estándar de Leaflet
-              //  marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
-// 1. Definir el icono personalizado con estructura HTML
-const busIcon = L.divIcon({
-    html: `
-        <div class="pulse-container">
-            <div class="pulse-ring"></div>
-            <div class="bus-emoji">🚌</div>
-        </div>
-    `,
-    className: 'custom-bus-marker', // Clase CSS personalizada para limpiar bordes
-    iconSize: [40, 40],             // Dimensiones del contenedor
-    iconAnchor: [20, 20]            // Centrar el icono exactamente en las coordenadas
-});
-
-// 2. Crear el marcador asignándole el nuevo icono
-marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPopup("Autobús UNAN");
-                
+                // Marcador e hilo nativo estándar de Leaflet estables sin arreglos vacíos
+                marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
                 lineaTrayectoria = L.polyline([], { color: '#2563eb', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
                 
                 // Forzar el redibujado geométrico para que se estire al 100% de la caja
@@ -155,7 +87,7 @@ marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPo
             }
 
             if (socket) {
-                // Escuchar la transmisión en tiempo real
+                // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
                 socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                     const latNum = parseFloat(d.lat);
                     const lngNum = parseFloat(d.lng);
@@ -192,7 +124,9 @@ marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPo
             }
         });
 
-        // MAPEO LOCAL INMEDIATO: Actualiza la pantalla del chofer sin retrasos
+       // <!-- INICIA EL BLOQUE NUMERO 3 -->
+
+        // MAPEO LOCAL INMEDIATO (De tu idea original): Actualiza la pantalla del chofer sin retrasos
         function enviarGps(p) {
             const lat = p.coords.latitude;
             const lng = p.coords.longitude;
@@ -222,7 +156,7 @@ marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPo
                 map.panTo(pos);
             }
 
-            // Transmisión hacia el backend
+            // Transmisión paralela limpia hacia el backend de Render con los números sueltos indexados
             if (socket) {
                 socket.emit('conductor_envia_coordenadas', {
                     rutaId: rutaId,
@@ -263,6 +197,7 @@ marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPo
             b2.removeAttribute('disabled'); b2.style.cursor = 'pointer'; b2.style.background = '#c62828';
             const opt = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
             
+            // Disparo inicial instantáneo y radar continuo idéntico a tu idea original sin filtros restrictivos
             navigator.geolocation.getCurrentPosition((p) => {
                 enviarGps(p);
                 watchId = navigator.geolocation.watchPosition(enviarGps, (e) => console.error(e), opt);
@@ -290,33 +225,6 @@ marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPo
             if (marcadorSalida) { map.removeLayer(marcadorSalida); marcadorSalida = null; }
             if (socket) socket.emit('finalizar_viaje_limpiar_bitacora');
         }
-
-// Bloquear el menú de clic derecho
-document.addEventListener('contextmenu', event => event.preventDefault());
-// Bloquear F12, Ctrl+U (Ver código fuente) y Ctrl+Shift+I (Inspeccionar)
-document.addEventListener('keydown', event => {
-    // Bloquear F12
-    if (event.keyCode === 123) {
-        event.preventDefault();
-    }
-    // Bloquear Ctrl+Shift+I (Inspeccionar en Chrome/Firefox)
-    if (event.ctrlKey && event.shiftKey && event.keyCode === 73) {
-        event.preventDefault();
-    }
-    // Bloquear Ctrl+U (Ver código fuente de la página)
-    if (event.ctrlKey && event.keyCode === 85) {
-        event.preventDefault();
-    }
-});
-        // Registrar el Service Worker para hacer la app instalable
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('Service Worker registrado con éxito'))
-                    .catch(err => console.error('Error al registrar el Service Worker', err));
-            });
-        }
-        
     </script>
 </body>
 </html>
