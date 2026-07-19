@@ -58,11 +58,16 @@
         opacity: 0;
     }
 }
-
-
-
-        
+     
     </style>
+
+    <!-- Metatags para PWA y Apple Mobile -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1565c0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    
 </head>
 <body style="font-family: Arial, sans-serif; padding: 15px; max-width: 1000px; margin: 0 auto; background-color: #f4f6f9;">
     <h2>Control GPS de Recorridos de la UNAN - Managua</h2>
@@ -303,9 +308,14 @@ document.addEventListener('keydown', event => {
         event.preventDefault();
     }
 });
-
-
-
+        // Registrar el Service Worker para hacer la app instalable
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito'))
+                    .catch(err => console.error('Error al registrar el Service Worker', err));
+            });
+        }
         
     </script>
 </body>
