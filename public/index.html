@@ -88,10 +88,16 @@
 
             if (socket) {
                 // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
-                socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
-                    const latNum = parseFloat(d.lat);
-                    const lngNum = parseFloat(d.lng);
-                    const pos = [latNum, lngNum];
+               
+                // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
+socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
+    // SI ESTE CELULAR TIENE EL GPS ACTIVADO (ES EL CONDUCTOR), IGNORAMOS LA RETRANSMISIÓN
+    if (watchId !== null) return;
+
+    const latNum = parseFloat(d.lat);
+    const lngNum = parseFloat(d.lng);
+    const pos = [latNum, lngNum];
+              
                     
                     if (esPrimerPunto) {
                         esPrimerPunto = false;
