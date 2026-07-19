@@ -11,6 +11,57 @@
     <style>
         /* Estilos base limpios para forzar que Leaflet no oculte las imágenes */
         #mapa { width: 100% !important; height: 500px !important; display: block !important; position: relative !important; }
+
+
+        /* Estilos para quitar el fondo por defecto del marcador de Leaflet */
+.custom-bus-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Contenedor del emoji y el pulso */
+.pulse-container {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* El círculo azul que parpadea y se expande */
+.pulse-ring {
+    border: 3px solid #2563eb;
+    box-sizing: border-box;
+    border-radius: 50%;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    animation: pulse 1.8s ease-out infinite;
+}
+
+/* El emoji del autobús en el centro */
+.bus-emoji {
+    font-size: 26px;
+    z-index: 10;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+}
+
+/* Animación del pulso */
+@keyframes pulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(2.2);
+        opacity: 0;
+    }
+}
+
+
+
+        
     </style>
 </head>
 <body style="font-family: Arial, sans-serif; padding: 15px; max-width: 1000px; margin: 0 auto; background-color: #f4f6f9;">
@@ -73,7 +124,23 @@
                 }).addTo(map);
 
                 // Marcador e hilo nativo estándar de Leaflet
-                marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
+              //  marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
+// 1. Definir el icono personalizado con estructura HTML
+const busIcon = L.divIcon({
+    html: `
+        <div class="pulse-container">
+            <div class="pulse-ring"></div>
+            <div class="bus-emoji">🚌</div>
+        </div>
+    `,
+    className: 'custom-bus-marker', // Clase CSS personalizada para limpiar bordes
+    iconSize: [40, 40],             // Dimensiones del contenedor
+    iconAnchor: [20, 20]            // Centrar el icono exactamente en las coordenadas
+});
+
+// 2. Crear el marcador asignándole el nuevo icono
+marcadorVehiculo = L.marker([latIn, lngIn], { icon: busIcon }).addTo(map).bindPopup("Autobús UNAN");
+                
                 lineaTrayectoria = L.polyline([], { color: '#2563eb', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
                 
                 // Forzar el redibujado geométrico para que se estire al 100% de la caja
