@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LBROWN Microsystems GPS</title>
-    <!-- Librerías Globales Estables desde Cloudflare (Inmunes a caídas de disco) -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
+    <!-- Librerías de Leaflet desde CDN Estable -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cloudflare.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         /* Estilos base limpios para forzar que Leaflet no oculte las imágenes */
         #mapa { width: 100% !important; height: 500px !important; display: block !important; position: relative !important; }
@@ -41,9 +41,7 @@
     <!-- Caja del mapa con dimensiones nativas de seguridad en el HTML -->
     <div id="mapa" style="width: 100%; height: 500px; min-height: 500px; display: block; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></div>
 
-
-    <!--INICIA EL BLOQUE NUMERO 2-->
-        <script>
+    <script>
         let socket = null;
         let watchId = null;
         let map = null;
@@ -54,7 +52,7 @@
         
         const PIN_AUTORIZADO = "1234";
         const rutaId = "Ruta_Norte";
-        let accionPendiente = "";
+        let accionPending = ""; // Corregido el nombre aquí
         
         // Coordenadas base iniciales para Managua (UNAN)
         const latIn = 12.1136;
@@ -64,17 +62,17 @@
             if (typeof io !== 'undefined') socket = io();
             
             try {
-                // INICIALIZACIÓN DIRECTA (Inmune a cuadros grises): Monta el mapa en Managua al instante
+                // Monta el mapa en Managua al instante
                 map = L.map('mapa').setView([latIn, lngIn], 14);
                 
-                // URL universal estándar de OpenStreetMap limpia y con su extensión .png en su lugar exacto
-                L.tileLayer('https://openstreetmap.org/{z}/{x}/{y}.png', {
+                // URL estándar de OpenStreetMap corregida con {s}
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     crossOrigin: true,
-                    attribution: '© OpenStreetMap'
+                    attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
 
-                // Marcador e hilo nativo estándar de Leaflet estables sin arreglos vacíos
+                // Marcador e hilo nativo estándar de Leaflet
                 marcadorVehiculo = L.marker([latIn, lngIn]).addTo(map).bindPopup("Autobús UNAN");
                 lineaTrayectoria = L.polyline([], { color: '#2563eb', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
                 
@@ -85,7 +83,7 @@
             }
 
             if (socket) {
-                // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
+                // Escuchar la transmisión en tiempo real
                 socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                     const latNum = parseFloat(d.lat);
                     const lngNum = parseFloat(d.lng);
@@ -122,9 +120,7 @@
             }
         });
 
-       // <!-- INICIA EL BLOQUE NUMERO 3 -->
-
-        // MAPEO LOCAL INMEDIATO (De tu idea original): Actualiza la pantalla del chofer sin retrasos
+        // MAPEO LOCAL INMEDIATO: Actualiza la pantalla del chofer sin retrasos
         function enviarGps(p) {
             const lat = p.coords.latitude;
             const lng = p.coords.longitude;
@@ -154,7 +150,7 @@
                 map.panTo(pos);
             }
 
-            // Transmisión paralela limpia hacia el backend de Render con los números sueltos indexados
+            // Transmisión hacia el backend
             if (socket) {
                 socket.emit('conductor_envia_coordenadas', {
                     rutaId: rutaId,
@@ -195,7 +191,6 @@
             b2.removeAttribute('disabled'); b2.style.cursor = 'pointer'; b2.style.background = '#c62828';
             const opt = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
             
-            // Disparo inicial instantáneo y radar continuo idéntico a tu idea original sin filtros restrictivos
             navigator.geolocation.getCurrentPosition((p) => {
                 enviarGps(p);
                 watchId = navigator.geolocation.watchPosition(enviarGps, (e) => console.error(e), opt);
