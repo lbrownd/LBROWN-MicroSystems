@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LBROWN-MicroSystems</title>
-    <!-- Google Fonts para tipografía premium -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Librerías Globales Estables desde Cloudflare -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -186,8 +184,7 @@
             }
         }
 
-        /* Botones Premium */
-        .btn {
+       .btn {
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 0.95rem;
             font-weight: 600;
@@ -332,7 +329,7 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
-        /* Displays de Información */
+     
         .status-text {
             font-size: 0.85rem;
             font-weight: 600;
@@ -395,8 +392,7 @@
             padding: 10px;
         }
 
-        /* Contenedor del Mapa */
-        .map-wrapper {
+         .map-wrapper {
             background: var(--dark-card);
             border: 1px solid var(--dark-border);
             border-radius: 16px;
@@ -415,8 +411,7 @@
             z-index: 1;
         }
 
-        /* Leaflet Dark mode layer overrides to match dark theme beautifully */
-        .leaflet-container {
+         .leaflet-container {
             background: #111a2e !important;
         }
 
@@ -461,7 +456,7 @@
                 </div>
             </div>
 
-            <!-- Panel del Pasajero / Supervisor -->
+            <!-- Panel del Pasajero y/o Del Supervisor -->
             <div class="card">
                 <div class="card-header passenger-header">
                     <span class="pulse-indicator blue"></span>
@@ -474,7 +469,7 @@
             </div>
         </div>
 
-        <!-- Contenedor del Mapa -->
+        <!-- Caja Contenedora del Mapa -->
         <div class="map-wrapper">
             <div id="mapa"></div>
         </div>
@@ -502,17 +497,17 @@
             if (typeof io !== 'undefined') socket = io();
             
             try {
-                // Inicializar mapa de Leaflet
+                // Inicializar mapa de Leaflet dentro de un try chatch para alertar sobre cualquier problema en el bloque 
                 map = L.map('mapa').setView([latIn, lngIn], 14);
                 
-                // Capa de mosaicos estándar de OpenStreetMap
+                // Aqui pongo la capa de mosaicos estándar de OpenStreetMap 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     crossOrigin: true,
                     attribution: '© OpenStreetMap'
                 }).addTo(map);
 
-                // Ícono personalizado de autobús (DivIcon con SVG inline — no depende de imágenes externas)
+                // Ícono personalizado del bús (DivIcon con SVG inline — no depende de imágenes externas)
                 const iconBus = L.divIcon({
                     className: '',
                     html: `<div style="
@@ -529,18 +524,18 @@
                     popupAnchor: [0, -24]
                 });
 
-                // Marcador principal con ícono de bus y trazado de línea
+                // Marcador principal con el ícono del bus y el trazado de la línea 
                 marcadorVehiculo = L.marker([latIn, lngIn], { icon: iconBus }).addTo(map).bindPopup("🚌 Autobús UNAN");
                 lineaTrayectoria = L.polyline([], { color: '#3b82f6', weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(map);
                 
-                // Ajustar visualización del mapa al cargar
+                // Ajustar visualización del mapa al cargar para que se ajuste a cada dispositivo.
                 setTimeout(() => { if (map) map.invalidateSize(true); }, 400);
             } catch (e) { 
                 console.error("Error al montar mapa inicial:", e); 
             }
 
             if (socket) {
-                // Escuchar la transmisión del chofer en tiempo real (Vista del Pasajero / Supervisor)
+                // Escuchar la transmisión del posicionamiento del chofer en tiempo real (Vista del Usuario / Supervisor)
                 socket.on(`usuario_recibe_ruta_${rutaId}`, (d) => {
                     // Si el dispositivo actual es el conductor que está transmitiendo, ignorar la retransmisión
                     if (watchId !== null) return;
